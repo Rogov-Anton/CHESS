@@ -1,11 +1,9 @@
 WHITE, BLACK = 1, 2
 
 
-# функция для вычисления цвета противника
+# Функция для вычисления цвета противника
 def opponent(color):
-    if color == WHITE:
-        return BLACK
-    return WHITE
+    return WHITE if color == BLACK else BLACK
 
 
 def print_board(board):  # Распечатать доску в текстовом виде
@@ -23,8 +21,8 @@ def print_board(board):  # Распечатать доску в текстово
 
 
 def coords_in_field(row, col):
-    """Функция проверяет, что координаты (row, col) лежат
-    внутри доски"""
+    '''Функция проверяет, что координаты (row, col) лежат
+    внутри доски'''
     return 0 <= row < 8 and 0 <= col < 8
 
 
@@ -33,12 +31,12 @@ class Board:
         self.turn = WHITE
         self.field = [[None for i in range(8)] for j in range(8)]
         # Пешка белого цвета в клетке E2.
-        self.field[1][4] = Pawn(1, 4, WHITE)
+        # self.field[1][4] = Pawn(1, 4, WHITE)
 
     def cell(self, row, col):
-        """Возвращает строку из двух символов. Если в клетке (row, col)
+        '''Возвращает строку из двух символов. Если в клетке (row, col)
         находится фигура, символы цвета и фигуры. Если клетка пуста,
-        то два пробела."""
+        то два пробела.'''
         piece = self.field[row][col]
         if piece is None:
             return '  '
@@ -47,9 +45,9 @@ class Board:
         return c + piece.char()
 
     def move_piece(self, row, col, row1, col1):
-        """Переместить фигуру из точки (row, col) в точку (row1, col1).
+        '''Переместить фигуру из точки (row, col) в точку (row1, col1).
         Если перемещение возможно, метод выполнит его и вернет True.
-        Если нет --- вернет False"""
+        Если нет --- вернет False'''
 
         if not coords_in_field(row, col) or not coords_in_field(row1, col1):
             return False
@@ -58,7 +56,7 @@ class Board:
         piece = self.field[row][col]
         if piece is None:
             return False
-        if piece.get_color() != self.turn:
+        if piece.color != self.turn:
             return False
         if not piece.can_move(row1, col1):
             return False
@@ -71,8 +69,8 @@ class Board:
 
 class Figure:  # Базовый класс для фигур
     def __init__(self, row, col, color):
-        self.row = row
-        self.col = col
+        self.row = row  # текущий ряд
+        self.col = col  # текущий столбец
         self.color = color
 
     def set_position(self, row, col):
@@ -118,11 +116,23 @@ class Rook(Figure):
         return 'R'
 
     def can_move(self, row, col):
-        # Невозможно сделать ход в клетку, которая не лежит в том же ряду
-        # или столбце клеток.
+        '''Невозможно сделать ход в клетку, которая не лежит в том же ряду
+        или столбце клеток.'''
         if self.row != row and self.col != col:
             return False
         return True
+
+
+class Bishop(Figure):  # Слон
+    def char(self):
+        return 'B'
+
+    def can_move(self, row, col):
+        if self.row - self.col == row - col:
+            return True
+        if self.row + self.col == row + col:
+            return True
+        return False
 
 
 def main():
@@ -154,4 +164,11 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    f = Board()
+    b = Bishop(4, 2, BLACK)
+    f.field[4][2] = b
+    for i in range(8):
+        for j in range(8):
+            if b.can_move(i, j):
+                f.field[i][j] = b
+    print_board(f)
