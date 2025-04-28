@@ -1,92 +1,58 @@
-class FileSystem:
-    def __init__(self):
-        self.files = [
-            Directory('1'),
-            Directory('2')
-        ]  # корневой каталог
-
-    def make_directory(self, name: str, path: str):
-        if path == '/':  # Если путь не указан, то создать папку в корневом каталоге
-            self.files.append(Directory(name))
-            return True
-
-        parts = path.split('/')
-        current_dir = self  # текущая дериктория
-        idx = 0
-
-        while len(parts) - 2 >= idx:
-            for elem in current_dir.files:  # Проходим по всем файлам в текущей директории
-                if isinstance(elem, Directory):  # Если элемент - это дирректория
-                    if elem.name == parts[idx]:
-                        current_dir = elem
-                        idx += 1
-                        break
-            else:  # Если дирректория не найдена, то выдать сообщение об ошибке
-                return False
-
-        current_dir.files.append(Directory(name))
-
-    def list_directory(self, path):
-        if path == '/':
-            return self.files
-
-        parts = path.split('/')
-        current_dir = self  # текущая дериктория
-        idx = 0
-
-        while len(parts) - 2 >= idx:
-            for elem in current_dir.files:  # Проходим по всем файлам в текущей директории
-                if isinstance(elem, Directory):  # Если элемент - это дирректория
-                    if elem.name == parts[idx]:
-                        current_dir = elem
-                        idx += 1
-                        break
-            else:  # Если дирректория не найдена, то выдать сообщение об ошибке
-                return False
-
-        return current_dir.files
+from os import system
+from Board import *
 
 
-class Directory:
-    def __init__(self, name):
-        self.name = name
-        self.files = []
-
-    def __repr__(self):
-        BLUE = '\033[34m'
-        RESET = '\033[0m'
-        print(f"{BLUE}{self.name}{RESET}")
+# Функция для вычисления цвета противника
+def opponent(color):
+    return WHITE if color == BLACK else BLACK
 
 
-def print_quide():
-    print('<exit> - quit')
-    print('<mkdir> {path} - make directory')
-    print('')
+def print_board(board):  # Распечатать доску в текстовом виде
+    print('     +----+----+----+----+----+----+----+----+')
+    for row in range(7, -1, -1):
+        print(' ', row, end='  ')
+        for col in range(8):
+            print('|', board.cell(row, col), end=' ')
+        print('|')
+        print('     +----+----+----+----+----+----+----+----+')
+    print(end='        ')
+    for col in range(8):
+        print(col, end='    ')
+    print()
 
 
-def execute_command(filesystem: FileSystem, text):  # Функция для выполнения команд
-    if text == 'man':
-        print_quide()
-        return True
-    parts = text.split()
-    command = parts[0]
-    if command == 'mkdir':
-        filesystem.make_directory(parts[1], parts[2])
-        return True
-    if command == 'ls':
-        result = filesystem.list_directory(parts[1])
-        print(result)
-        return True
+def coords_in_field(row, col):
+    """Функция проверяет, что координаты (row, col) лежат
+    внутри доски"""
+    return 0 <= row < 8 and 0 <= col < 8
 
 
-print('This is my file-system. Type <man> to get guide')
-filesystem = FileSystem()
-command = input()
+def main():
+    board = Board()  # Создаём шахматную доску
+    # Цикл ввода команд игроков
+    while True:
+        print_board(board)  # Выводим положение фигур на доске
+        # Подсказка по командам
+        print('Команды:')
+        print('    exit                               -- выход')
+        print('    move <row> <col> <row1> <col1>     -- ход из клетки (row, col)')
+        print('                                          в клетку (row1, col1)')
+        # Выводим приглашение игроку нужного цвета
+        if board.current_player_color() == WHITE:
+            print('Ход белых:')
+        else:
+            print('Ход черных:')
+        command = input()
+        system('clear')
+        if command == 'exit':
+            break
+        move_type, row, col, row1, col1 = command.split()
+        row, col, row1, col1 = int(row), int(col), int(row1), int(col1)
+        if board.move_piece(row, col, row1, col1):
+            print('\033[32mХод успешен!\033[0m')
+        else:
+            print('\033[31mКоординаты некорректны! Попробуйте другой ход!\033[0m')
 
-execute_command(filesystem, command)
 
-"""
-while command != 'exit':
-    execute_command(filesystem, command)
-    command = input()
-"""
+if __name__ == '__main__':
+    main()
