@@ -1,25 +1,11 @@
 class FileSystem:
     def __init__(self):
-        self.files = [
-            Directory('bin'),
-            Directory('boot'),
-            Directory('dev'),
-            Directory('etc'),
-            Directory('home'),
-            File('swap.img')
-        ]  # корневой каталог
-        self.names = [
-            'bin',
-            'boot',
-            'dev',
-            'etc',
-            'home',
-            'swap.img'
-        ]  # строки с именами существующих файлов
+        self.files = []  # корневой каталог
+        self.names = []  # строки с именами существующих файлов
 
     def make_directory(self, name: str, path: str):
         parts = path.split('/')
-        current_dir = self  # текущая дериктория
+        current_dir: Directory = self  # текущая дериктория
         idx = 0
 
         if path == '/':  # создать директорию в корневом каталоге
@@ -28,9 +14,9 @@ class FileSystem:
                 self.names.append(name)
                 return ''
             else:
-                return f"mkdir: cannot create directory ‘{name}’: File exists"
+                return f"mkdir: cannot create directory '{name}': File exists"
 
-        while len(parts) - 1 >= idx:
+        while len(parts) > idx:
             for elem in current_dir.files:  # перебор по файлам в текущей директории
                 if isinstance(elem, Directory) and elem.name == parts[idx]:
                     current_dir = elem
@@ -40,20 +26,20 @@ class FileSystem:
                 return f"mkdir: cannot create directory ‘{path}’: No such file or directory"
         else:
             if name in current_dir.names:
-                return f"mkdir: cannot create directory ‘{name}’: File exists"
+                return f'mkdir: cannot create directory ‘{name}’: File exists'
             else:
                 current_dir.files.append(Directory(name))
                 current_dir.names.append(name)
                 return ''
 
-    def list_directory(self, path):
+    def list_directory(self, path: str):
         parts = path.split('/')
-        current_dir = self  # текущая дериктория
+        current_dir: Directory = self  # текущая дериктория
         idx = 0
 
         if path == '/':  # вывести список директорий в корневом каталоге
             return self.files
-        while len(parts) - 1 >= idx:
+        while len(parts) > idx:
             for elem in current_dir.files:
                 if isinstance(elem, Directory) and elem.name == parts[idx]:
                     current_dir = elem
@@ -64,6 +50,54 @@ class FileSystem:
         else:
             return current_dir.files
 
+    def write_file(self, text: str, path: str):
+
+        parts = path.split('/')
+        current_dir: Directory = self
+        idx = 0
+
+        while len(parts) - 1 > idx:
+            for elem in current_dir.files:
+                if isinstance(elem, Directory) and elem.name == parts[idx]:
+                    current_dir = elem
+                    idx += 1
+                    break
+            else:
+                return 'unable to create a file: no such directory'
+        else:
+            name_of_file = parts[-1]
+            for elem in current_dir.files:
+                if isinstance(elem, File) and elem.name == name_of_file:
+                    elem.text = text
+                elif isinstance(elem, Directory) and elem.name == name_of_file:
+                    return 'unable to create a file: it\'s a directory'
+            else:
+                current_dir.files.append(File(name_of_file, text))
+
+    def read_file(self, path: str):
+
+        parts = path.split('/')
+        current_dir: Directory = self
+        idx = 0
+
+        while len(parts) - 1 > idx:
+            for elem in current_dir.files:
+                if isinstance(elem, Directory) and elem.name == parts[idx]:
+                    current_dir = elem
+                    idx += 1
+                    break
+            else:
+                return f'cat: {path}: no such file or directory'
+        else:
+            name_of_file = parts[-1]
+            for elem in current_dir.files:
+                if isinstance(elem, File) and elem.name == name_of_file:
+                    return elem.text
+                elif isinstance(elem, Directory) and elem.name == name_of_file:
+                    return f'cat: {path}: it\'s a directory'
+            else:
+                return f'cat: {path}: no such file or directory'
+
 
 class Directory:
     def __init__(self, name):
@@ -73,31 +107,60 @@ class Directory:
 
 
 class File:
-    def __init__(self, name):
+    def __init__(self, name, text):
         self.name = name
-        self.text = ''
+        self.text = text
 
 
 def print_quide():
-    print('exit          --  quit')
-    print('mkdir {path}  --  make directory')
-    print('ls {path}     --  list directory contents')
+    quide = '''
+    Создание каталога:
+        mkdir {имя_каталога} {путь_до_каталога}
+        Чтобы создать каталог в корневом каталоге в качестве пути до каталаго нужно указать /
+
+    Просмотр содержимого каталога:
+        ls {путь_до_каталога}
+        Чтобы просмотреть содержимое в корневом каталоге в качестве пути до каталаго нужно указать /
+        Синим цветом будут обозначены каталоги, белым - файлы
+    
+    Создание/запись файла:
+        write {текст_для_записи} {путь_до_файла}
+        Пример:
+            write Hello World! dir/file -- запишет строку 'Hello World!' в файл, находящийся в каталоге dir,
+            или создаст его, если его не существует
+    
+    Чтение файла:
+        cat {путь_до_файла}
+        Пример:
+            cat dir/file -- выведет на экран содержимое файла file, который находится в каталоге dir
+    
+    Выход из системы:
+        exit
+    '''
+    print(quide)
+    print()
 
 
 def execute_command(filesystem: FileSystem, text):  # Функция для выполнения команд
+
+    parts = text.split()
+
     if text == 'man':
         print_quide()
-        return True
-    parts = text.split()
+        return
+    if not parts:
+        return
+
     command = parts[0]
     if command == 'mkdir':
         result = filesystem.make_directory(parts[1], parts[2])
         if result != '':
             print(result)
+
     elif command == 'ls':
         result = filesystem.list_directory(parts[1])
         if result == 'Error':
-            print(f"ls: cannot access {text}: No such file or directory")
+            print(f"ls: cannot access '{parts[1]}': No such file or directory")
         else:
             for elem in result:
                 if isinstance(elem, Directory):
@@ -105,10 +168,27 @@ def execute_command(filesystem: FileSystem, text):  # Функция для вы
                 else:
                     print(elem.name)
 
+    elif command == 'write':
+        result = filesystem.write_file(' '.join(parts[1:len(parts) - 1]), parts[-1])
+        if not result is None:
+            print(result)
 
-print('This is my file-system. Type <man> to get guide')
-filesystem = FileSystem()
-command = input('--> ')
-while command != 'exit':
-    execute_command(filesystem, command)
-    command = input('--> ')
+    elif command == 'cat':
+        result = filesystem.read_file(parts[1])
+        print(result)
+
+    else:
+        print(f"{parts[0]}: command not found")
+
+
+def main():
+    print('This is my filesystem. Type <man> to get guide')
+    filesystem = FileSystem()
+    command = input('-> ')
+    while command != 'exit':
+        execute_command(filesystem, command)
+        command = input('-> ')
+
+
+if __name__ == '__main__':
+    main()
